@@ -17,6 +17,9 @@ class Task:
     owner_id: Optional[str] = None
     pet_ids: List[str] = field(default_factory=list)  # allow assignment to multiple pets
 
+    def mark_complete(self) -> None:
+        """Mark this task as completed."""
+        self.completed = True
 
 @dataclass
 class Pet:
