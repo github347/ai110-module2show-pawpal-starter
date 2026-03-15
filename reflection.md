@@ -2,10 +2,22 @@
 
 ## 1. System Design
 
+
+
 **a. Initial design**
 
 - Briefly describe your initial UML design.
 - What classes did you include, and what responsibilities did you assign to each?
+    - The user must be able to add/create a new pet to manage.
+        - Name, Birthday, Sex, Alergies
+        - Add/Edit Name, Sex, Birthday, Delete
+    - The user should be able to schedule a task
+        - Title, Time, Date, Description, Reminder, Repeated, Priority, Completed
+        - Add/Edit/Delete
+    - The user should be able to see today's or future task.
+        - Add/Edit/Delete
+
+
 
 **b. Design changes**
 
