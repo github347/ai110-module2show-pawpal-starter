@@ -1,4 +1,5 @@
 import streamlit as st
+from pawpal_system import Owner, Pet, Scheduler, Task
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -43,30 +44,88 @@ owner_name = st.text_input("Owner name", value="Jordan")
 pet_name = st.text_input("Pet name", value="Mochi")
 species = st.selectbox("Species", ["dog", "cat", "other"])
 
-st.markdown("### Tasks")
-st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
+# Owner creation UI
+col_owner1, col_owner2 = st.columns([2, 1])
 
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
+# ensure a serializable owner slot
+if "owner" not in st.session_state:
+    st.session_state.owner = None
+if "owner_obj" not in st.session_state:
+    st.session_state.owner_obj = None
 
-col1, col2, col3 = st.columns(3)
-with col1:
-    task_title = st.text_input("Task title", value="Morning walk")
-with col2:
-    duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
-with col3:
-    priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
+with col_owner1:
+    if st.button("Create owner"):
+        # store a simple serializable fallback (keeps across refreshes)
+        st.session_state.owner = {"name": owner_name}
+        # try to also create the Owner instance if available
+        try:
+            st.session_state.owner_obj = Owner(name=owner_name)
+        except Exception:
+            st.session_state.owner_obj = None
 
-if st.button("Add task"):
-    st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
-    )
+with col_owner2:
+    st.write("Current owner:")
+    if st.session_state.owner:
+        st.write(st.session_state.owner.get("name", "Unknown"))
+    else:
+        st.info("No owner yet. Create one above.")
 
-if st.session_state.tasks:
-    st.write("Current tasks:")
-    st.table(st.session_state.tasks)
-else:
-    st.info("No tasks yet. Add one above.")
+# Add-pet UI + session handling
+if "pets" not in st.session_state:
+    st.session_state.pets = []
+
+col_pet1, col_pet2 = st.columns([2, 1])
+with col_pet1:
+    if st.button("Add pet"):
+        # Try to instantiate a Pet object, fall back to dict if signature differs
+        try:
+            pet_obj = Pet(name=pet_name, species=species)
+        except TypeError:
+            try:
+                pet_obj = Pet(pet_name, species)
+            except Exception:
+                pet_obj = {"name": pet_name, "species": species}
+
+        # Link pet to owner if an owner exists in session_state
+        owner = st.session_state.get("owner")
+        if owner:
+            # preferred: call owner's add_pet if available
+            if hasattr(owner, "add_pet"):
+                try:
+                    owner.add_pet(pet_obj)
+                except Exception:
+                    pass
+            else:
+                # fallback: attach owner reference to pet
+                try:
+                    if isinstance(pet_obj, dict):
+                        pet_obj["owner"] = owner.get("name") if isinstance(owner, dict) else getattr(owner, "name", None)
+                    else:
+                        setattr(pet_obj, "owner", owner)
+                except Exception:
+                    pass
+
+        st.session_state.pets.append(pet_obj)
+
+with col_pet2:
+    st.write("Current pets:")
+    if st.session_state.pets:
+        pets_display = []
+        for p in st.session_state.pets:
+            if isinstance(p, dict):
+                pets_display.append({"name": p.get("name"), "species": p.get("species"), "owner": p.get("owner")})
+            else:
+                name = getattr(p, "name", None) or getattr(p, "title", None)
+                species_attr = getattr(p, "species", None)
+                # try to get linked owner name
+                owner_attr = None
+                owner_obj = getattr(p, "owner", None)
+                if owner_obj:
+                    owner_attr = owner_obj if isinstance(owner_obj, str) else getattr(owner_obj, "name", None)
+                pets_display.append({"name": name, "species": species_attr, "owner": owner_attr})
+        st.table(pets_display)
+    else:
+        st.info("No pets yet. Add one above.")
 
 st.divider()
 
