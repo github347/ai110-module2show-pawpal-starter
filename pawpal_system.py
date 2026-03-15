@@ -114,6 +114,7 @@ class Owner:
 
     def add_pet(self, pet: Pet) -> None:
         self.pets[pet.id] = pet
+        pet.owner = self
 
     def edit_pet(self, pet_id: str, **kwargs) -> None:
         pet = self.pets.get(pet_id)

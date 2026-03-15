@@ -1,3 +1,7 @@
+# Weekly TF Task 4
+
+The core concept students needed to understand is to implemented client requirement into a complete application using AI. Students are most likely to struggle balancing the number of attributes and methods needing to function. The AI was helpful in creating the ULM, code skeleton and implementing the methods. However, it was struggling in helping with the UI and streamlit session. I had some misconceptions about the script rerun and page refresh (should be emphasised to students). One way I would guide a student without giving the answer is to encourage them to keep to stay curious and in control of the AI, take it step by step to not feel overwhelmed. 
+
 # PawPal+ (Module 2 Project)
 
 You are building **PawPal+**, a Streamlit app that helps a pet owner plan care tasks for their pet.

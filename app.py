@@ -47,85 +47,104 @@ species = st.selectbox("Species", ["dog", "cat", "other"])
 # Owner creation UI
 col_owner1, col_owner2 = st.columns([2, 1])
 
-# ensure a serializable owner slot
-if "owner" not in st.session_state:
-    st.session_state.owner = None
+# ensure owner object slot
 if "owner_obj" not in st.session_state:
     st.session_state.owner_obj = None
 
 with col_owner1:
     if st.button("Create owner"):
-        # store a simple serializable fallback (keeps across refreshes)
-        st.session_state.owner = {"name": owner_name}
-        # try to also create the Owner instance if available
         try:
             st.session_state.owner_obj = Owner(name=owner_name)
-        except Exception:
-            st.session_state.owner_obj = None
+            st.success(f"Created owner {owner_name}")
+        except TypeError:
+            try:
+                st.session_state.owner_obj = Owner(owner_name)
+                st.success(f"Created owner {owner_name}")
+            except Exception as e:
+                st.error(f"Failed to create Owner: {e}")
+                st.session_state.owner_obj = None
 
 with col_owner2:
     st.write("Current owner:")
-    if st.session_state.owner:
-        st.write(st.session_state.owner.get("name", "Unknown"))
+    owner_obj = st.session_state.get("owner_obj")
+    if owner_obj:
+        st.write(getattr(owner_obj, "name", "Unknown"))
     else:
         st.info("No owner yet. Create one above.")
 
-# Add-pet UI + session handling
+# Ensure pets list exists (store objects)
 if "pets" not in st.session_state:
     st.session_state.pets = []
 
-col_pet1, col_pet2 = st.columns([2, 1])
-with col_pet1:
-    if st.button("Add pet"):
-        # Try to instantiate a Pet object, fall back to dict if signature differs
-        try:
-            pet_obj = Pet(name=pet_name, species=species)
-        except TypeError:
-            try:
-                pet_obj = Pet(pet_name, species)
-            except Exception:
-                pet_obj = {"name": pet_name, "species": species}
+st.markdown("### Add a pet")
+with st.form("add_pet_form"):
+    pet_name_input = st.text_input("Pet name", value="Mochi")
+    pet_birthday = st.date_input("Birthday")
+    pet_species = st.selectbox("Species", ["dog", "cat", "other"])
+    # Owner selection inside the form (uses owner_obj or owners list if present)
+    owners_for_select = []
+    if "owners" in st.session_state and isinstance(st.session_state["owners"], list):
+        owners_for_select = st.session_state["owners"]
+    else:
+        single_owner = st.session_state.get("owner_obj")
+        if single_owner:
+            owners_for_select = [single_owner]
 
-        # Link pet to owner if an owner exists in session_state
-        owner = st.session_state.get("owner")
-        if owner:
-            # preferred: call owner's add_pet if available
-            if hasattr(owner, "add_pet"):
+    selected_owner = st.selectbox(
+        "Owner",
+        options=[None] + owners_for_select,
+        format_func=lambda o: "No owner" if o is None else getattr(o, "name", "Unknown"),
+    )
+
+    submitted = st.form_submit_button("Add pet")
+
+if submitted:
+    try:
+        pet_obj = Pet(name=pet_name_input, birthday=pet_birthday, species=pet_species)
+    except TypeError:
+        try:
+            pet_obj = Pet(pet_name_input, pet_birthday, pet_species)
+        except Exception as e:
+            st.error(f"Failed to create Pet: {e}")
+            pet_obj = None
+
+    if pet_obj:
+        # Use owner chosen in the form first, else fall back to session owner_obj
+        owner_instance = selected_owner or st.session_state.get("owner_obj")
+        if owner_instance:
+            if hasattr(owner_instance, "add_pet"):
                 try:
-                    owner.add_pet(pet_obj)
+                    owner_instance.add_pet(pet_obj)
                 except Exception:
-                    pass
+                    try:
+                        setattr(pet_obj, "owner", owner_instance)
+                    except Exception:
+                        pass
             else:
-                # fallback: attach owner reference to pet
                 try:
-                    if isinstance(pet_obj, dict):
-                        pet_obj["owner"] = owner.get("name") if isinstance(owner, dict) else getattr(owner, "name", None)
-                    else:
-                        setattr(pet_obj, "owner", owner)
+                    setattr(pet_obj, "owner", owner_instance)
                 except Exception:
                     pass
+        else:
+            st.info("No owner to link to; pet will be created without owner.")
 
         st.session_state.pets.append(pet_obj)
+        st.success(f"Added pet {pet_name_input}")
 
-with col_pet2:
-    st.write("Current pets:")
-    if st.session_state.pets:
-        pets_display = []
-        for p in st.session_state.pets:
-            if isinstance(p, dict):
-                pets_display.append({"name": p.get("name"), "species": p.get("species"), "owner": p.get("owner")})
-            else:
-                name = getattr(p, "name", None) or getattr(p, "title", None)
-                species_attr = getattr(p, "species", None)
-                # try to get linked owner name
-                owner_attr = None
-                owner_obj = getattr(p, "owner", None)
-                if owner_obj:
-                    owner_attr = owner_obj if isinstance(owner_obj, str) else getattr(owner_obj, "name", None)
-                pets_display.append({"name": name, "species": species_attr, "owner": owner_attr})
-        st.table(pets_display)
-    else:
-        st.info("No pets yet. Add one above.")
+st.write("Current pets:")
+if st.session_state.pets:
+    pets_display = []
+    for p in st.session_state.pets:
+        name = getattr(p, "name", None) or getattr(p, "title", None)
+        species_attr = getattr(p, "species", None)
+        owner_attr = None
+        owner_obj = getattr(p, "owner", None)
+        if owner_obj:
+            owner_attr = owner_obj if isinstance(owner_obj, str) else getattr(owner_obj, "name", None)
+        pets_display.append({"name": name, "species": species_attr, "owner": owner_attr})
+    st.table(pets_display)
+else:
+    st.info("No pets yet. Add one above.")
 
 st.divider()
 
