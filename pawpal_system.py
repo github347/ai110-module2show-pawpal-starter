@@ -63,6 +63,7 @@ class Pet:
     name: str = ""
     birthday: Optional[date] = None
     sex: Optional[str] = None
+    species: Optional[str] = None
     allergies: List[str] = field(default_factory=list)
     tasks: List[str] = field(default_factory=list)  # store task ids
 
@@ -71,6 +72,9 @@ class Pet:
 
     def edit_sex(self, new_sex: str) -> None:
         self.sex = new_sex
+
+    def edit_species(self, new_species: str) -> None:
+        self.species = new_species
 
     def edit_birthday(self, new_birthday: date) -> None:
         self.birthday = new_birthday
