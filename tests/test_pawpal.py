@@ -1,6 +1,5 @@
 from datetime import datetime
-from pawpal_system import Task, Pet
-
+from pawpal_system import Owner, Pet, Scheduler, Task
 
 
 def test_task_completion():
