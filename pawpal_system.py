@@ -6,6 +6,24 @@ from uuid import uuid4
 
 @dataclass
 class Task:
+    """
+    Represents a task associated with pets and their owners.
+
+    Attributes:
+        id (str): Unique identifier for the task.
+        title (str): Title of the task.
+        scheduled_at (datetime): Date and time when the task is scheduled.
+        description (str): Detailed description of the task.
+        reminder (bool): Whether a reminder is set for the task.
+        repeated (bool): Whether the task is recurring.
+        priority (int): Priority level of the task.
+        completed (bool): Whether the task has been completed.
+        owner_id (Optional[str]): Identifier of the owner associated with the task.
+        pet_ids (List[str]): List of pet identifiers assigned to the task.
+
+    Methods:
+        mark_complete(): Marks the task as completed.
+    """
     id: str = field(default_factory=lambda: uuid4().hex)
     title: str = ""
     scheduled_at: datetime = field(default_factory=lambda: datetime.now())
@@ -23,6 +41,24 @@ class Task:
 
 @dataclass
 class Pet:
+    """
+    Represents a pet with attributes such as name, birthday, sex, allergies, and associated tasks.
+
+    Attributes:
+        id (str): Unique identifier for the pet.
+        name (str): Name of the pet.
+        birthday (Optional[date]): Birthday of the pet.
+        sex (Optional[str]): Sex of the pet.
+        allergies (List[str]): List of allergies the pet has.
+        tasks (List[str]): List of task IDs associated with the pet.
+
+    Methods:
+        edit_name(new_name: str): Updates the pet's name.
+        edit_sex(new_sex: str): Updates the pet's sex.
+        edit_birthday(new_birthday: date): Updates the pet's birthday.
+        add_task(task_id: str): Adds a task ID to the pet's task list if not already present.
+        remove_task(task_id: str): Removes a task ID from the pet's task list if present.
+    """
     id: str = field(default_factory=lambda: uuid4().hex)
     name: str = ""
     birthday: Optional[date] = None
@@ -49,6 +85,24 @@ class Pet:
 
 
 class Owner:
+    """
+    Represents a pet owner in the PawPal system.
+
+    Attributes:
+        id (str): Unique identifier for the owner.
+        name (str): Name of the owner.
+        pets (Dict[str, Pet]): Dictionary mapping pet IDs to Pet objects owned by the owner.
+
+    Methods:
+        add_pet(pet: Pet) -> None:
+            Adds a pet to the owner's collection.
+
+        edit_pet(pet_id: str, **kwargs) -> None:
+            Edits attributes of a pet owned by the owner, given the pet's ID and attribute values.
+
+        delete_pet(pet_id: str) -> None:
+            Removes a pet from the owner's collection by pet ID.
+    """
     def __init__(self, name: str):
         self.id: str = uuid4().hex
         self.name = name
@@ -70,6 +124,48 @@ class Owner:
 
 
 class Scheduler:
+    """
+    Scheduler is a canonical store for Task objects, providing fast lookup and management by task ID, date, and pet association.
+
+    Attributes:
+        tasks_by_id (Dict[str, Task]): Maps task IDs to Task objects.
+        tasks_by_date (Dict[date, Set[str]]): Maps dates to sets of task IDs scheduled on those dates.
+        tasks_by_pet (Dict[str, Set[str]]): Maps pet IDs to sets of task IDs assigned to each pet.
+
+    Methods:
+        __init__():
+            Initializes empty task indexes.
+
+        _index_task(task: Task) -> None:
+            Adds a Task to all relevant indexes (ID, date, pet).
+
+        _unindex_task(task: Task) -> None:
+            Removes a Task from all relevant indexes.
+
+        create_task(title: str, scheduled_at: datetime, owner_id: Optional[str] = None, pet_ids: Optional[List[str]] = None, **kwargs) -> Task:
+            Creates a new Task, indexes it, and returns the Task object.
+
+        add_task(task: Task) -> None:
+            Adds an existing Task object to the scheduler and indexes it.
+
+        edit_task(task_id: str, **kwargs) -> None:
+            Edits attributes of a Task. Reindexes if scheduled_at or pet_ids change.
+
+        delete_task(task_id: str) -> None:
+            Removes a Task from the scheduler and all indexes.
+
+        assign_task_to_pets(task_id: str, pet_ids: List[str], pet_store: Dict[str, Pet] = None) -> None:
+            Assigns a Task to multiple pets and updates indexes and optional pet_store.
+
+        unassign_task_from_pet(task_id: str, pet_id: str, pet_store: Dict[str, Pet] = None) -> None:
+            Removes a Task assignment from a specific pet and updates indexes and optional pet_store.
+
+        view_tasks_on(target_date: date) -> List[Task]:
+            Returns a list of Tasks scheduled on a specific date.
+
+        view_future_tasks(from_date: date) -> List[Task]:
+            Returns a list of Tasks scheduled after a given date.
+    """
     """Canonical store for tasks. Indexes tasks by id, date, and pet for fast lookups.
     Pets store task ids; Scheduler maintains the authoritative Task objects."""
 
