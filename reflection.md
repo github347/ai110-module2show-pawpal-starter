@@ -23,6 +23,7 @@
 
 - Did your design change during implementation?
 - If yes, describe at least one change and why you made it.
+    - I added UUIDs and datetime, made Scheduler the canonical task store with indexes, allowed tasks to be assigned to multiple pets, and updated the UML.
 
 ---
 
