@@ -38,6 +38,9 @@
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
+    - The scheduler indexes tasks by exact datetime (scheduled_at), so conflict detection only flags tasks at the identical minute.
+
+    - A task from 09:00–09:30 and one from 09:15–09:45 would not be flagged, even though they overlap. Supporting duration-based overlap detection would require adding a duration field to Task and changing check_conflicts to compare time ranges instead of exact equality.
 
 ---
 
