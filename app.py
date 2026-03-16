@@ -1,4 +1,5 @@
 import streamlit as st
+from datetime import datetime
 from pawpal_system import Owner, Pet, Scheduler, Task
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
@@ -148,19 +149,139 @@ else:
 
 st.divider()
 
+# ── Scheduler singleton ──────────────────────────────────────────────────────
+if "scheduler" not in st.session_state:
+    st.session_state.scheduler = Scheduler()
+
+scheduler: Scheduler = st.session_state.scheduler
+
+# ── Add a Task ───────────────────────────────────────────────────────────────
+st.subheader("Add a Task")
+
+with st.form("add_task_form"):
+    task_title = st.text_input("Task title", value="Walk")
+    task_desc  = st.text_area("Description", value="")
+
+    col_d, col_t = st.columns(2)
+    with col_d:
+        task_date = st.date_input("Date", value=datetime.today().date())
+    with col_t:
+        task_time = st.time_input("Time", value=datetime.now().replace(second=0, microsecond=0).time())
+
+    col_p, col_r, col_rec = st.columns(3)
+    with col_p:
+        task_priority = st.number_input("Priority (0 = low)", min_value=0, max_value=10, value=1, step=1)
+    with col_r:
+        task_reminder = st.checkbox("Reminder")
+    with col_rec:
+        task_recurrence = st.selectbox("Recurrence", ["none", "daily", "weekly"])
+
+    # Pet multi-select – use pets already in session state
+    pet_options = st.session_state.pets
+    selected_pets = st.multiselect(
+        "Assign to pets",
+        options=pet_options,
+        format_func=lambda p: getattr(p, "name", "?"),
+    )
+
+    task_submitted = st.form_submit_button("Add Task")
+
+if task_submitted:
+    if not task_title.strip():
+        st.error("Task title is required.")
+    else:
+        owner_obj = st.session_state.get("owner_obj")
+        scheduled_at = datetime.combine(task_date, task_time)
+        rec = task_recurrence if task_recurrence != "none" else None
+
+        new_task = scheduler.create_task(
+            title=task_title.strip(),
+            scheduled_at=scheduled_at,
+            owner_id=owner_obj.id if owner_obj else None,
+            pet_ids=[p.id for p in selected_pets],
+            description=task_desc,
+            priority=int(task_priority),
+            reminder=task_reminder,
+            recurrence=rec,
+        )
+        # keep pet objects in sync
+        pet_store = {p.id: p for p in st.session_state.pets}
+        for p in selected_pets:
+            p.add_task(new_task.id)
+
+        st.success(f"Task '{new_task.title}' added for {scheduled_at.strftime('%Y-%m-%d %H:%M')}")
+
+st.divider()
+
+# ── Build / View Schedule ────────────────────────────────────────────────────
 st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+
+col_view1, col_view2, col_view3 = st.columns(3)
+with col_view1:
+    view_date = st.date_input("View tasks for date", value=datetime.today().date(), key="view_date")
+with col_view2:
+    filter_completed = st.selectbox("Filter by status", ["all", "pending", "completed"], key="filter_completed")
+with col_view3:
+    filter_pet_names = [getattr(p, "name", "?") for p in st.session_state.pets]
+    filter_pet = st.selectbox("Filter by pet", ["all"] + filter_pet_names, key="filter_pet")
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
+    pet_store = {p.id: p for p in st.session_state.pets}
+
+    tasks = scheduler.view_tasks_on(view_date)
+
+    # filter
+    completed_filter = None if filter_completed == "all" else (filter_completed == "completed")
+    pet_name_filter  = None if filter_pet == "all" else filter_pet
+    tasks = scheduler.filter_tasks(
+        tasks,
+        completed=completed_filter,
+        pet_name=pet_name_filter,
+        pet_store=pet_store,
     )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+
+    # sort
+    tasks = scheduler.sort_by_time(tasks)
+
+    if not tasks:
+        st.info("No tasks found for the selected date / filters.")
+    else:
+        # conflict warnings
+        conflicts = scheduler.check_conflicts(tasks, pet_store=pet_store)
+        for w in conflicts:
+            st.warning(w)
+
+        # display
+        rows = []
+        for t in tasks:
+            pet_names = ", ".join(
+                pet_store[pid].name for pid in t.pet_ids if pid in pet_store
+            ) or "—"
+            rows.append({
+                "Time":        t.scheduled_at.strftime("%H:%M"),
+                "Title":       t.title,
+                "Priority":    t.priority,
+                "Pet(s)":      pet_names,
+                "Recurrence":  t.recurrence or "—",
+                "Reminder":    "✓" if t.reminder else "",
+                "Done":        "✓" if t.completed else "",
+                "Description": t.description or "—",
+            })
+        st.table(rows)
+
+        # Mark complete buttons (one per task)
+        st.markdown("**Mark tasks complete:**")
+        for t in tasks:
+            if not t.completed:
+                if st.button(f"✅ {t.title} @ {t.scheduled_at.strftime('%H:%M')}", key=f"complete_{t.id}"):
+                    next_task = t.mark_complete()
+                    if next_task:
+                        scheduler.add_task(next_task)
+                        # sync pets
+                        for pid in next_task.pet_ids:
+                            if pid in pet_store:
+                                pet_store[pid].add_task(next_task.id)
+                        st.success(f"'{t.title}' marked complete. Next occurrence added.")
+                    else:
+                        st.success(f"'{t.title}' marked complete.")
+                    st.rerun()
