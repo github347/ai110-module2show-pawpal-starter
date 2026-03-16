@@ -291,6 +291,48 @@ class Scheduler:
     def sort_by_time(self, tasks: List[Task]) -> List[Task]:
         return sorted(tasks, key=lambda t: t.scheduled_at)
 
+    def check_conflicts(
+        self,
+        tasks: List[Task],
+        pet_store: Dict[str, "Pet"] = None,
+    ) -> List[str]:
+        """Return a list of warning strings for tasks sharing the same scheduled_at.
+
+        Checks both same-pet and cross-pet conflicts. Does not raise — callers
+        decide what to do with the warnings.
+        """
+        by_time: Dict[datetime, List[Task]] = {}
+        for task in tasks:
+            by_time.setdefault(task.scheduled_at, []).append(task)
+
+        warnings = []
+        for dt, conflicting in by_time.items():
+            if len(conflicting) < 2:
+                continue
+            time_str = dt.strftime("%Y-%m-%d %H:%M")
+            for i, a in enumerate(conflicting):
+                for b in conflicting[i + 1:]:
+                    shared_pets = set(a.pet_ids) & set(b.pet_ids)
+                    if shared_pets and pet_store:
+                        names = ", ".join(
+                            pet_store[pid].name for pid in shared_pets if pid in pet_store
+                        )
+                        warnings.append(
+                            f"WARNING [{time_str}] Same-pet conflict: '{a.title}' and "
+                            f"'{b.title}' both assigned to {names}."
+                        )
+                    elif shared_pets:
+                        warnings.append(
+                            f"WARNING [{time_str}] Same-pet conflict: '{a.title}' and "
+                            f"'{b.title}' share pet IDs {shared_pets}."
+                        )
+                    else:
+                        warnings.append(
+                            f"WARNING [{time_str}] Scheduling conflict: '{a.title}' and "
+                            f"'{b.title}' are scheduled at the same time."
+                        )
+        return warnings
+
     def filter_tasks(
         self,
         tasks: List[Task],

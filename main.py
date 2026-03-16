@@ -96,6 +96,31 @@ def main():
     if next_t2:
         print(f"  '{next_t2.title}' next run: {next_t2.scheduled_at.strftime('%Y-%m-%d %H:%M')} (recurrence: {next_t2.recurrence})")
 
+    # --- Conflict detection demo ---
+    # Same-pet conflict: Bella has two tasks at 09:00
+    sched.create_task(
+        title="Vet Check",
+        scheduled_at=datetime.combine(date.today(), time(hour=9, minute=0)),
+        owner_id=owner.id,
+        pet_ids=[pet1.id],
+    )
+    # Cross-pet conflict: Max gets a task at 18:00 (same as Evening Play)
+    sched.create_task(
+        title="Bath Time",
+        scheduled_at=datetime.combine(date.today(), time(hour=18, minute=0)),
+        owner_id=owner.id,
+        pet_ids=[pet2.id],
+    )
+
+    all_tasks_with_conflicts = sched.view_tasks_on(date.today())
+    print("\n--- Conflict detection ---")
+    warnings = sched.check_conflicts(all_tasks_with_conflicts, pet_store=owner.pets)
+    if warnings:
+        for w in warnings:
+            print(f"  {w}")
+    else:
+        print("  No conflicts found.")
+
 
 if __name__ == "__main__":
     main()
