@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Set
-from datetime import datetime, date
+from datetime import datetime, date, timedelta
 from uuid import uuid4
 
 
@@ -30,14 +30,36 @@ class Task:
     description: str = ""
     reminder: bool = False
     repeated: bool = False
+    recurrence: Optional[str] = None  # "daily" | "weekly" | None
     priority: int = 0
     completed: bool = False
     owner_id: Optional[str] = None
     pet_ids: List[str] = field(default_factory=list)  # allow assignment to multiple pets
 
-    def mark_complete(self) -> None:
-        """Mark this task as completed."""
+    def mark_complete(self) -> Optional["Task"]:
+        """Mark this task as completed.
+
+        Returns a new Task for the next occurrence if recurrence is "daily" or
+        "weekly", otherwise returns None.
+        """
         self.completed = True
+        if self.recurrence == "daily":
+            delta = timedelta(days=1)
+        elif self.recurrence == "weekly":
+            delta = timedelta(weeks=1)
+        else:
+            return None
+        return Task(
+            title=self.title,
+            scheduled_at=self.scheduled_at + delta,
+            description=self.description,
+            reminder=self.reminder,
+            repeated=self.repeated,
+            recurrence=self.recurrence,
+            priority=self.priority,
+            owner_id=self.owner_id,
+            pet_ids=list(self.pet_ids),
+        )
 
 @dataclass
 class Pet:
@@ -266,6 +288,32 @@ class Scheduler:
                 result.extend(self.tasks_by_id[i] for i in ids)
         return result
 
+    def sort_by_time(self, tasks: List[Task]) -> List[Task]:
+        return sorted(tasks, key=lambda t: t.scheduled_at)
+
+    def filter_tasks(
+        self,
+        tasks: List[Task],
+        completed: Optional[bool] = None,
+        pet_name: Optional[str] = None,
+        pet_store: Dict[str, "Pet"] = None,
+    ) -> List[Task]:
+        result = []
+        for task in tasks:
+            if completed is not None and task.completed != completed:
+                continue
+            if pet_name is not None:
+                if not pet_store:
+                    continue
+                pet_names = [
+                    pet_store[pid].name
+                    for pid in task.pet_ids
+                    if pid in pet_store
+                ]
+                if pet_name not in pet_names:
+                    continue
+            result.append(task)
+        return result
 
 if __name__ == "__main__":
     # Minimal usage example (updated for id/datetime-based API)

@@ -39,10 +39,10 @@ At minimum, your system should:
 
 st.divider()
 
-st.subheader("Quick Demo Inputs (UI only)")
+st.subheader("Add a owner")
 owner_name = st.text_input("Owner name", value="Jordan")
-pet_name = st.text_input("Pet name", value="Mochi")
-species = st.selectbox("Species", ["dog", "cat", "other"])
+# pet_name = st.text_input("Pet name", value="Mochi")
+# species = st.selectbox("Species", ["dog", "cat", "other"])
 
 # Owner creation UI
 col_owner1, col_owner2 = st.columns([2, 1])
