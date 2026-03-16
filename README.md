@@ -40,6 +40,36 @@ Three features were added to `Scheduler` and `Task` to make scheduling more inte
 
 > **Known tradeoff:** conflicts are detected by exact minute match. Two tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) will not be flagged unless a `duration` field is added and range comparison is used.
 
+## Testing PawPal+
+
+### Run the tests
+
+```bash
+python -m pytest tests/test_pawpal.py -v
+```
+
+### What the tests cover
+
+| Test | What it verifies |
+| --- | --- |
+| `test_task_completion` | A task starts incomplete and is marked complete after `mark_complete()` |
+| `test_task_addition_to_pet` | Adding a task ID to a pet updates its task list correctly |
+| `test_sort_by_time_chronological_order` | `sort_by_time()` returns tasks in ascending `scheduled_at` order regardless of insertion order |
+| `test_daily_recurrence_creates_next_day_task` | Completing a `recurrence="daily"` task returns a new task scheduled exactly 1 day later, with all fields preserved |
+| `test_daily_recurrence_new_task_has_different_id` | The recurrence-spawned task receives a fresh unique ID |
+| `test_no_recurrence_returns_none` | `mark_complete()` returns `None` for non-recurring tasks |
+| `test_conflict_detection_same_time` | Two tasks at the same datetime produce exactly one conflict warning containing both task titles |
+| `test_conflict_detection_no_conflict` | Tasks at different times produce no warnings |
+| `test_conflict_detection_same_pet_conflict` | Two same-time tasks sharing a pet produce a "Same-pet conflict" warning with the pet's name |
+
+### Confidence Level
+
+### ★★★★☆ (4/5)
+
+All 9 tests pass. Core behaviors — task lifecycle, daily recurrence, chronological sorting, and conflict detection — are verified and working correctly. The one-star deduction reflects a known gap: conflicts are only detected on exact `scheduled_at` matches. Tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) are not flagged, as noted in the tradeoffs section below.
+
+---
+
 ## Getting started
 
 ### Setup
@@ -59,3 +89,12 @@ pip install -r requirements.txt
 5. Add tests to verify key behaviors.
 6. Connect your logic to the Streamlit UI in `app.py`.
 7. Refine UML so it matches what you actually built.
+
+
+## Demo
+
+![Add a owner](<Previews/Add a owner - preview.png>)
+![Add a pet](<Previews/Add a pet - preview.png>)
+![Add a Task](<Previews/Add a Task - preview.png>)
+![Build Schedule](<Previews/Build schedule - preview.png>) 
+![UlM Final](Previews/ulm_final_mermaid-diagram.png)
