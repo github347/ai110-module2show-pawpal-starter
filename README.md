@@ -16,6 +16,23 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
+## Features
+
+| Feature | Where | Description |
+| --- | --- | --- |
+| **Owner & pet management** | `Owner`, `Pet` | Create an owner, add pets with name / species / birthday. Owner holds pets in a keyed dictionary; `add_pet()` sets a back-reference so each `Pet` knows its `Owner`. |
+| **Task creation** | `Scheduler.create_task()` | Creates a `Task` with title, datetime, priority, description, reminder flag, and assigned pet IDs. The scheduler indexes every task by ID, date, and pet for fast lookups. |
+| **Assign tasks to pets** | `Scheduler.assign_task_to_pets()` | Links a task to one or more pets at once, updating both the scheduler's index and each pet's own task-ID list. |
+| **Unassign a task from a pet** | `Scheduler.unassign_task_from_pet()` | Removes the link between a task and a specific pet without deleting the task from the scheduler. |
+| **Sorting by time** | `Scheduler.sort_by_time()` | Returns tasks in ascending `scheduled_at` order regardless of insertion order, using a single-key sort on the datetime field. |
+| **Daily & weekly recurrence** | `Task.mark_complete()` | Completing a recurring task (`recurrence="daily"` or `"weekly"`) produces a new `Task` shifted by exactly 1 day or 7 days, with all original fields preserved and a fresh unique ID. |
+| **Non-recurring task completion** | `Task.mark_complete()` | For non-recurring tasks `mark_complete()` sets `completed = True` and returns `None` — no follow-up task is created. |
+| **Conflict warnings** | `Scheduler.check_conflicts()` | Scans a task list for exact `scheduled_at` matches and returns human-readable warning strings. Distinguishes *same-pet conflicts* (two tasks for the same animal at the same time) from *cross-pet conflicts* (different animals, same slot). Never raises — warnings are returned for the caller to display. |
+| **Filtering** | `Scheduler.filter_tasks()` | Narrows a task list by completion status, assigned pet name, or both. Does not mutate the scheduler — returns a filtered copy. |
+| **View tasks by date** | `Scheduler.view_tasks_on()` | Returns all tasks scheduled on a specific date using the date index — O(1) lookup instead of scanning every task. |
+| **View future tasks** | `Scheduler.view_future_tasks()` | Returns all tasks scheduled after a given date by iterating only over date-indexed buckets. |
+| **Interactive schedule UI** | `app.py` — Build Schedule | User picks a date, optional pet filter, and completion filter. The app fetches, filters, sorts, and displays tasks in a table, surfaces any conflict warnings, and provides per-task "Mark complete" buttons that handle recurrence automatically. |
+
 ## What you will build
 
 Your final app should:
