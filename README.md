@@ -154,6 +154,7 @@ Describe your app in numbered steps so a reader can follow along without watchin
 	<details>
 
 	<summary>Sorting</summary>
+	
 	`sort_by_time(tasks)` returns a list of tasks ordered by `scheduled_at`, regardless of the order they were created or added.
 	</details>
 
