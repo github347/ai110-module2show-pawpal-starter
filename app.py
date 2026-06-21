@@ -226,7 +226,14 @@ with col_view3:
     filter_pet = st.selectbox("Filter by pet", ["all"] + filter_pet_names, key="filter_pet")
 
 if st.button("Generate schedule"):
+    st.session_state.show_schedule = True
+
+if st.session_state.get("show_schedule"):
     pet_store = {p.id: p for p in st.session_state.pets}
+
+    # show any confirmation carried over from a previous rerun
+    if st.session_state.get("complete_msg"):
+        st.success(st.session_state.pop("complete_msg"))
 
     tasks = scheduler.view_tasks_on(view_date)
 
@@ -281,7 +288,9 @@ if st.button("Generate schedule"):
                         for pid in next_task.pet_ids:
                             if pid in pet_store:
                                 pet_store[pid].add_task(next_task.id)
-                        st.success(f"'{t.title}' marked complete. Next occurrence added.")
+                        st.session_state.complete_msg = (
+                            f"'{t.title}' marked complete. Next occurrence added."
+                        )
                     else:
-                        st.success(f"'{t.title}' marked complete.")
+                        st.session_state.complete_msg = f"'{t.title}' marked complete."
                     st.rerun()
