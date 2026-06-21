@@ -16,23 +16,6 @@ A busy pet owner needs help staying consistent with pet care. They want an assis
 
 Your job is to design the system first (UML), then implement the logic in Python, then connect it to the Streamlit UI.
 
-## Features
-
-| Feature | Where | Description |
-| --- | --- | --- |
-| **Owner & pet management** | `Owner`, `Pet` | Create an owner, add pets with name / species / birthday. Owner holds pets in a keyed dictionary; `add_pet()` sets a back-reference so each `Pet` knows its `Owner`. |
-| **Task creation** | `Scheduler.create_task()` | Creates a `Task` with title, datetime, priority, description, reminder flag, and assigned pet IDs. The scheduler indexes every task by ID, date, and pet for fast lookups. |
-| **Assign tasks to pets** | `Scheduler.assign_task_to_pets()` | Links a task to one or more pets at once, updating both the scheduler's index and each pet's own task-ID list. |
-| **Unassign a task from a pet** | `Scheduler.unassign_task_from_pet()` | Removes the link between a task and a specific pet without deleting the task from the scheduler. |
-| **Sorting by time** | `Scheduler.sort_by_time()` | Returns tasks in ascending `scheduled_at` order regardless of insertion order, using a single-key sort on the datetime field. |
-| **Daily & weekly recurrence** | `Task.mark_complete()` | Completing a recurring task (`recurrence="daily"` or `"weekly"`) produces a new `Task` shifted by exactly 1 day or 7 days, with all original fields preserved and a fresh unique ID. |
-| **Non-recurring task completion** | `Task.mark_complete()` | For non-recurring tasks `mark_complete()` sets `completed = True` and returns `None` — no follow-up task is created. |
-| **Conflict warnings** | `Scheduler.check_conflicts()` | Scans a task list for exact `scheduled_at` matches and returns human-readable warning strings. Distinguishes *same-pet conflicts* (two tasks for the same animal at the same time) from *cross-pet conflicts* (different animals, same slot). Never raises — warnings are returned for the caller to display. |
-| **Filtering** | `Scheduler.filter_tasks()` | Narrows a task list by completion status, assigned pet name, or both. Does not mutate the scheduler — returns a filtered copy. |
-| **View tasks by date** | `Scheduler.view_tasks_on()` | Returns all tasks scheduled on a specific date using the date index — O(1) lookup instead of scanning every task. |
-| **View future tasks** | `Scheduler.view_future_tasks()` | Returns all tasks scheduled after a given date by iterating only over date-indexed buckets. |
-| **Interactive schedule UI** | `app.py` — Build Schedule | User picks a date, optional pet filter, and completion filter. The app fetches, filters, sorts, and displays tasks in a table, surfaces any conflict warnings, and provides per-task "Mark complete" buttons that handle recurrence automatically. |
-
 ## What you will build
 
 Your final app should:
@@ -42,50 +25,6 @@ Your final app should:
 - Generate a daily schedule/plan based on constraints and priorities
 - Display the plan clearly (and ideally explain the reasoning)
 - Include tests for the most important scheduling behaviors
-
-## Smarter Scheduling
-
-Three features were added to `Scheduler` and `Task` to make scheduling more intelligent:
-
-**Recurring tasks** — `Task` gains a `recurrence` field (`"daily"` or `"weekly"`). When `mark_complete()` is called on a recurring task it returns a new `Task` instance scheduled for the next occurrence (tomorrow or next week), preserving all original fields. The caller registers it with the scheduler via `add_task()`.
-
-**Sorting** — `sort_by_time(tasks)` returns a list of tasks ordered by `scheduled_at`, regardless of the order they were created or added.
-
-**Filtering** — `filter_tasks(tasks, completed=..., pet_name=..., pet_store=...)` narrows a task list by completion status, assigned pet name, or both. Returns a filtered list without modifying the scheduler.
-
-**Conflict detection** — `check_conflicts(tasks, pet_store=...)` scans for tasks sharing an exact `scheduled_at` datetime and returns a list of human-readable warning strings. It distinguishes between same-pet conflicts (two tasks for the same animal at the same time) and cross-pet conflicts (different animals, same time slot). The program never crashes — warnings are returned for the caller to display.
-
-> **Known tradeoff:** conflicts are detected by exact minute match. Two tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) will not be flagged unless a `duration` field is added and range comparison is used.
-
-## Testing PawPal+
-
-### Run the tests
-
-```bash
-python -m pytest tests/test_pawpal.py -v
-```
-
-### What the tests cover
-
-| Test | What it verifies |
-| --- | --- |
-| `test_task_completion` | A task starts incomplete and is marked complete after `mark_complete()` |
-| `test_task_addition_to_pet` | Adding a task ID to a pet updates its task list correctly |
-| `test_sort_by_time_chronological_order` | `sort_by_time()` returns tasks in ascending `scheduled_at` order regardless of insertion order |
-| `test_daily_recurrence_creates_next_day_task` | Completing a `recurrence="daily"` task returns a new task scheduled exactly 1 day later, with all fields preserved |
-| `test_daily_recurrence_new_task_has_different_id` | The recurrence-spawned task receives a fresh unique ID |
-| `test_no_recurrence_returns_none` | `mark_complete()` returns `None` for non-recurring tasks |
-| `test_conflict_detection_same_time` | Two tasks at the same datetime produce exactly one conflict warning containing both task titles |
-| `test_conflict_detection_no_conflict` | Tasks at different times produce no warnings |
-| `test_conflict_detection_same_pet_conflict` | Two same-time tasks sharing a pet produce a "Same-pet conflict" warning with the pet's name |
-
-### Confidence Level
-
-### ★★★★☆ (4/5)
-
-All 9 tests pass. Core behaviors — task lifecycle, daily recurrence, chronological sorting, and conflict detection — are verified and working correctly. The one-star deduction reflects a known gap: conflicts are only detected on exact `scheduled_at` matches. Tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) are not flagged, as noted in the tradeoffs section below.
-
----
 
 ## Getting started
 
@@ -112,18 +51,22 @@ pip install -r requirements.txt
 Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+All tasks sorted by time:
+  09:00 | Morning Walk | Pets: Bella | done
+  11:30 | Midday Meds | Pets: Max | done
+  18:00 | Evening Play | Pets: Bella, Max | pending
+
+--- Recurring task next occurrences ---
+  'Morning Walk' next run: 2026-06-22 09:00 (recurrence: daily)
+  'Midday Meds' next run: 2026-06-28 11:30 (recurrence: weekly)
 ```
+
 
 ## 🧪 Testing PawPal+
 
 ```bash
 # Run the full test suite:
-pytest
+python -m pytest tests/test_pawpal.py
 
 # Run with coverage:
 pytest --cov
@@ -132,33 +75,119 @@ pytest --cov
 Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts ==============================
+platform darwin -- Python 3.12.12, pytest-9.0.2, pluggy-1.6.0
+rootdir: /Users/djamellhermitus/Codebase Central/CodePath TF/Week 4/ai110-module2show-pawpal-starter
+plugins: cov-7.1.0, anyio-4.13.0
+collected 9 items
+
+tests/test_pawpal.py .........                                           [100%]
+
+================================ tests coverage ================================
+______________ coverage: platform darwin, python 3.12.12-final-0 _______________
+
+Name                   Stmts   Miss Branch BrPart  Cover
+--------------------------------------------------------
+app.py                   167    167     58      0     0%
+main.py                   63     63     18      0     0%
+pawpal_system.py         190     98     80      4    41%
+tests/test_pawpal.py      70      0      2      0   100%
+--------------------------------------------------------
+TOTAL                    490    328    158      4    28%
+============================== 9 passed in 0.15s ===============================
+Finished running tests!
 ```
+
+### What the tests cover
+
+| Test | What it verifies |
+| --- | --- |
+| `test_task_completion` | A task starts incomplete and is marked complete after `mark_complete()` |
+| `test_task_addition_to_pet` | Adding a task ID to a pet updates its task list correctly |
+| `test_sort_by_time_chronological_order` | `sort_by_time()` returns tasks in ascending `scheduled_at` order regardless of insertion order |
+| `test_daily_recurrence_creates_next_day_task` | Completing a `recurrence="daily"` task returns a new task scheduled exactly 1 day later, with all fields preserved |
+| `test_daily_recurrence_new_task_has_different_id` | The recurrence-spawned task receives a fresh unique ID |
+| `test_no_recurrence_returns_none` | `mark_complete()` returns `None` for non-recurring tasks |
+| `test_conflict_detection_same_time` | Two tasks at the same datetime produce exactly one conflict warning containing both task titles |
+| `test_conflict_detection_no_conflict` | Tasks at different times produce no warnings |
+| `test_conflict_detection_same_pet_conflict` | Two same-time tasks sharing a pet produce a "Same-pet conflict" warning with the pet's name |
+
+### Confidence Level
+
+### ★★★★☆ (4/5)
+
+All 9 tests pass. Core behaviors — task lifecycle, daily recurrence, chronological sorting, and conflict detection — are verified and working correctly. The one-star deduction reflects a known gap: conflicts are only detected on exact `scheduled_at` matches. Tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) are not flagged, as noted in the tradeoffs section below.
 
 ## 📐 Smarter Scheduling
 
 > Fill in once you've implemented scheduling logic.
 
 | Feature | Method(s) | Notes |
-|---------|-----------|-------|
-| Task sorting | | e.g., by priority, duration |
-| Filtering | | e.g., skip tasks if time runs out |
-| Conflict handling | | e.g., overlapping time slots |
-| Recurring tasks | | e.g., daily vs. weekly |
+| --- | --- | --- |
+| **Owner & pet management** | `Owner`, `Pet` | Create an owner, add pets with name / species / birthday. Owner holds pets in a keyed dictionary; `add_pet()` sets a back-reference so each `Pet` knows its `Owner`. |
+| **Task creation** | `Scheduler.create_task()` | Creates a `Task` with title, datetime, priority, description, reminder flag, and assigned pet IDs. The scheduler indexes every task by ID, date, and pet for fast lookups. |
+| **Assign tasks to pets** | `Scheduler.assign_task_to_pets()` | Links a task to one or more pets at once, updating both the scheduler's index and each pet's own task-ID list. |
+| **Unassign a task from a pet** | `Scheduler.unassign_task_from_pet()` | Removes the link between a task and a specific pet without deleting the task from the scheduler. |
+| **Sorting by time** | `Scheduler.sort_by_time()` | Returns tasks in ascending `scheduled_at` order regardless of insertion order, using a single-key sort on the datetime field. |
+| **Daily & weekly recurrence** | `Task.mark_complete()` | Completing a recurring task (`recurrence="daily"` or `"weekly"`) produces a new `Task` shifted by exactly 1 day or 7 days, with all original fields preserved and a fresh unique ID. |
+| **Non-recurring task completion** | `Task.mark_complete()` | For non-recurring tasks `mark_complete()` sets `completed = True` and returns `None` — no follow-up task is created. |
+| **Conflict warnings** | `Scheduler.check_conflicts()` | Scans a task list for exact `scheduled_at` matches and returns human-readable warning strings. Distinguishes *same-pet conflicts* (two tasks for the same animal at the same time) from *cross-pet conflicts* (different animals, same slot). Never raises — warnings are returned for the caller to display. |
+| **Filtering** | `Scheduler.filter_tasks()` | Narrows a task list by completion status, assigned pet name, or both. Does not mutate the scheduler — returns a filtered copy. |
+| **View tasks by date** | `Scheduler.view_tasks_on()` | Returns all tasks scheduled on a specific date using the date index — O(1) lookup instead of scanning every task. |
+| **View future tasks** | `Scheduler.view_future_tasks()` | Returns all tasks scheduled after a given date by iterating only over date-indexed buckets. |
+| **Interactive schedule UI** | `app.py` — Build Schedule | User picks a date, optional pet filter, and completion filter. The app fetches, filters, sorts, and displays tasks in a table, surfaces any conflict warnings, and provides per-task "Mark complete" buttons that handle recurrence automatically. |
+
+---
 
 ## 📸 Demo Walkthrough
 
 Describe your app in numbered steps so a reader can follow along without watching a video:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Main UI: Add a owner, Add a pet, Add a Task, Build Schedule
+2. Key Scheduler behaviors (click to open): 
+   <details>
+   <summary>Recurring tasks</summary>
+
+    `Task` gains a `recurrence` field (`"daily"` or `"weekly"`). When `mark_complete()` is called on a recurring task it returns a new `Task` instance scheduled for the next occurrence (tomorrow or next week), preserving all original fields. The caller registers it with the scheduler via `add_task()`.
+   </details>
+
+	<details>
+
+	<summary>Sorting</summary>
+	`sort_by_time(tasks)` returns a list of tasks ordered by `scheduled_at`, regardless of the order they were created or added.
+	</details>
+
+	<details>
+
+	<summary>Filtering</summary>
+
+	`filter_tasks(tasks, completed=..., pet_name=..., pet_store=...)` narrows a task list by completion status, assigned pet name, or both. Returns a filtered list without modifying the scheduler.
+	</details>
+
+	<details>
+
+	<summary>Conflict detection</summary>
+
+	`check_conflicts(tasks, pet_store=...)` scans for tasks sharing an exact `scheduled_at` datetime and returns a list of human-readable warning strings. It distinguishes between same-pet conflicts (two tasks for the same animal at the same time) and cross-pet conflicts (different animals, same time slot). The program never crashes — warnings are returned for the caller to display.
+
+	> **Known tradeoff:** conflicts are detected by exact minute match. Two tasks with overlapping durations (e.g. 09:00–09:30 and 09:15–09:45) will not be flagged unless a `duration` field is added and range comparison is used.
+	</details>
+
+3. Add a pet → schedule a task → Generate and view today's schedule
+4. Filter by status  →  Generate Schedule  → See schedule for all, pending or completed task
+5. CLI example: 
+```
+--- Recurring task next occurrences ---
+  'Morning Walk' next run: 2026-06-22 09:00 (recurrence: daily)
+  'Midday Meds' next run: 2026-06-28 11:30 (recurrence: weekly)
+
+--- Conflict detection ---
+  WARNING [2026-06-21 18:00] Same-pet conflict: 'Bath Time' and 'Evening Play' both assigned to Max.
+  WARNING [2026-06-21 09:00] Same-pet conflict: 'Morning Walk' and 'Vet Check' both assigned to Bella.
+```
+
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
-
-## Demo
 
 ![Add a owner](<Previews/Add a owner - preview.png>)
 ![Add a pet](<Previews/Add a pet - preview.png>)

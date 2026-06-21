@@ -5,3 +5,4 @@ __pycache__/
 .DS_Store
 __pycache__/pawpal_system.cpython-314.pyc
 .vscode/settings.json
+.coverage
